@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADIC 臨床申請解析 証跡デモ — GhostDrift Research</title>
+<style>
+:root {
+  --bg: #f7f6f3;
+  --surface: #ffffff;
+  --surface2: #f2f1ee;
+  --border: rgba(0,0,0,0.09);
+  --border-med: rgba(0,0,0,0.16);
+  --text: #181816;
+  --muted: #636260;
+  --hint: #9e9c99;
+  --teal: #0f8c65;
+  --teal-bg: #e0f4ed;
+  --teal-text: #0a6349;
+  --teal-border: rgba(15,140,101,0.3);
+  --amber: #a86800;
+  --amber-bg: #fdf0d8;
+  --amber-text: #7a4c00;
+  --red: #c0291e;
+  --red-bg: #fcecea;
+  --red-text: #8f1e16;
+  --red-border: rgba(192,41,30,0.25);
+  --mono: 'SF Mono','Fira Code','Menlo',monospace;
+  --sans: 'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',system-ui,sans-serif;
+  --r: 7px;
+  --rl: 11px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#141412;--surface:#1e1e1c;--surface2:#252523;
+    --border:rgba(255,255,255,0.08);--border-med:rgba(255,255,255,0.15);
+    --text:#eeecea;--muted:#928f8c;--hint:#575552;
+    --teal-bg:#062e1e;--teal-text:#5dd4a4;--teal-border:rgba(93,212,164,0.25);
+    --amber-bg:#2e1c00;--amber-text:#f0a830;
+    --red-bg:#2a0c09;--red-text:#f0786e;--red-border:rgba(240,120,110,0.25);
+  }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.75;min-height:100vh}
+a{color:var(--teal)}
+
+/* ── Layout ── */
+.wrap{max-width:680px;margin:0 auto;padding:48px 20px 80px}
+
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:52px}
+.badge-adic{font-size:10px;font-family:var(--mono);letter-spacing:.08em;color:var(--muted);border:0.5px solid var(--border-med);padding:3px 9px;border-radius:var(--r);background:var(--surface)}
+.gh-btn{font-size:12px;color:var(--hint);border:0.5px solid var(--border);padding:5px 13px;border-radius:var(--r);background:var(--surface);text-decoration:none;transition:color .15s,border-color .15s}
+.gh-btn:hover{color:var(--text);border-color:var(--border-med)}
+
+/* ── Pain section ── */
+.pain-head{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px}
+.pain-scenarios{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.pain-item{display:flex;align-items:flex-start;gap:11px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rl);padding:13px 16px}
+.pain-icon{font-size:13px;flex-shrink:0;margin-top:1px;line-height:1}
+.pain-text{font-size:13px;line-height:1.65;color:var(--text)}
+.pain-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+.adic-promise{background:var(--teal-bg);border:0.5px solid var(--teal-border);border-radius:var(--rl);padding:14px 18px;margin-bottom:36px}
+.adic-promise p{font-size:13px;color:var(--teal-text);line-height:1.7}
+.adic-promise strong{font-weight:500}
+
+/* ── Scenario toggle ── */
+.section-label{font-size:11px;font-weight:500;color:var(--hint);letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px}
+.scenario-toggle{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+.sc-btn{flex:1;min-width:160px;padding:12px 14px;border-radius:var(--rl);border:0.5px solid var(--border-med);background:var(--surface);cursor:pointer;font-family:var(--sans);font-size:13px;color:var(--muted);text-align:left;transition:all .15s;line-height:1.5}
+.sc-btn .sc-title{font-weight:500;display:block;margin-bottom:2px}
+.sc-btn .sc-desc{font-size:11px;color:var(--hint)}
+.sc-btn:hover{border-color:var(--border-med);color:var(--text)}
+.sc-btn.active-ok{border-color:var(--teal);background:var(--teal-bg);color:var(--teal-text)}
+.sc-btn.active-ok .sc-desc{color:var(--teal-text);opacity:.7}
+.sc-btn.active-ng{border-color:var(--red);background:var(--red-bg);color:var(--red-text)}
+.sc-btn.active-ng .sc-desc{color:var(--red-text);opacity:.7}
+
+/* ── Form ── */
+.form-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rl);padding:22px 24px;margin-bottom:20px}
+.field{margin-bottom:15px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+input,textarea{width:100%;padding:8px 11px;font-size:13px;font-family:var(--sans);background:var(--bg);border:0.5px solid var(--border-med);border-radius:var(--r);color:var(--text);outline:none;transition:border-color .15s}
+input:focus,textarea:focus{border-color:var(--teal)}
+textarea{resize:vertical;min-height:76px}
+.field-note{font-size:11px;color:var(--hint);margin-top:4px}
+
+.run-btn{width:100%;padding:12px;font-size:13px;font-weight:500;font-family:var(--sans);background:var(--text);color:var(--bg);border:none;border-radius:var(--r);cursor:pointer;transition:opacity .15s;letter-spacing:.01em}
+.run-btn:hover{opacity:.85}
+.run-btn.ng-mode{background:var(--red)}
+
+/* ── Processing ── */
+.proc-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rl);padding:24px}
+.proc-title{font-size:13px;color:var(--muted);margin-bottom:18px}
+.proc-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.proc-row:last-child{border-bottom:none}
+.proc-dot{width:17px;height:17px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--hint);transition:all .2s}
+.proc-dot.done{background:var(--teal-bg);color:var(--teal-text);border-color:var(--teal)}
+.proc-dot.running{background:var(--teal-bg);border-color:var(--teal);animation:blink .8s ease-in-out infinite alternate}
+.proc-dot.done-ng{background:var(--red-bg);color:var(--red-text);border-color:var(--red)}
+.proc-dot.running-ng{background:var(--red-bg);border-color:var(--red);animation:blink .8s ease-in-out infinite alternate}
+@keyframes blink{from{opacity:.45}to{opacity:1}}
+.proc-text{font-size:13px;color:var(--hint)}
+.proc-text.active{color:var(--text)}
+.proc-text.stopped{color:var(--red-text);font-weight:500}
+
+/* ── Tabs ── */
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:16px}
+.tab{padding:9px 15px;font-size:13px;font-family:var(--sans);background:none;border:none;border-bottom:2px solid transparent;color:var(--hint);cursor:pointer;transition:color .15s;margin-bottom:-1px}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--teal);border-bottom-color:var(--teal);font-weight:500}
+
+/* ── Result cards ── */
+.rc{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rl);padding:20px 22px}
+.rc-usage{display:flex;align-items:flex-start;gap:10px;background:var(--surface2);border-radius:var(--r);padding:10px 13px;margin-bottom:16px}
+.rc-usage-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+.rc-usage-text{font-size:12px;color:var(--muted);line-height:1.6}
+.rc-usage-text strong{font-weight:500;color:var(--text)}
+
+.row{padding:9px 0;border-bottom:0.5px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row-k{font-size:12px;color:var(--muted);margin-bottom:3px}
+.row-v{font-size:13px;color:var(--text)}
+.row-v.mono{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+.row-flex{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+
+.badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:var(--r);flex-shrink:0}
+.b-ok{background:var(--teal-bg);color:var(--teal-text)}
+.b-warn{background:var(--amber-bg);color:var(--amber-text)}
+.b-ng{background:var(--red-bg);color:var(--red-text)}
+
+.chip{display:inline-block;font-size:11px;font-family:var(--mono);background:var(--surface2);border:0.5px solid var(--border);padding:2px 8px;border-radius:var(--r);margin:2px 2px 2px 0;color:var(--muted)}
+
+.code-line{font-family:var(--mono);font-size:11px;background:var(--surface2);padding:5px 10px;border-radius:var(--r);margin-bottom:3px;color:var(--muted)}
+
+.stop-row{font-size:12px;color:var(--amber-text);padding:3px 0 3px 13px;position:relative}
+.stop-row::before{content:'—';position:absolute;left:0;color:var(--amber)}
+
+/* ── Verdict ── */
+.verdict{border-radius:var(--rl);padding:24px;text-align:center}
+.verdict.ok{background:var(--teal-bg);border:0.5px solid var(--teal-border)}
+.verdict.ng{background:var(--red-bg);border:0.5px solid var(--red-border)}
+.verdict-label{font-size:22px;font-weight:500;font-family:var(--mono);letter-spacing:.04em;margin-bottom:7px}
+.verdict.ok .verdict-label{color:var(--teal)}
+.verdict.ng .verdict-label{color:var(--red)}
+.verdict-msg{font-size:13px;line-height:1.7;margin-bottom:0}
+.verdict.ok .verdict-msg{color:var(--teal-text)}
+.verdict.ng .verdict-msg{color:var(--red-text)}
+
+.ng-reason{background:var(--surface);border:0.5px solid var(--red-border);border-radius:var(--rl);padding:16px 20px;margin-top:12px}
+.ng-reason-head{font-size:12px;font-weight:500;color:var(--red-text);margin-bottom:8px}
+.ng-reason-item{font-size:12px;color:var(--text);padding:5px 0;border-bottom:0.5px solid var(--border);line-height:1.6}
+.ng-reason-item:last-child{border-bottom:none}
+.ng-reason-item .key{color:var(--muted);font-size:11px;display:block;margin-bottom:1px}
+
+.ng-benefit{background:var(--teal-bg);border:0.5px solid var(--teal-border);border-radius:var(--r);padding:11px 14px;margin-top:14px}
+.ng-benefit p{font-size:12px;color:var(--teal-text);line-height:1.65}
+
+.checklist{margin-top:14px}
+.check-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.check-row:last-child{border-bottom:none}
+.check-label{font-size:13px}
+
+.disclaimer{margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border);font-size:11px;color:var(--hint);line-height:1.65}
+
+/* ── Bottom nav ── */
+.bottom-bar{display:flex;justify-content:flex-end;margin-top:16px}
+.reset-btn{font-size:12px;font-family:var(--sans);background:transparent;border:0.5px solid var(--border);border-radius:var(--r);color:var(--hint);padding:7px 15px;cursor:pointer;transition:all .15s}
+.reset-btn:hover{border-color:var(--border-med);color:var(--text)}
+
+/* ── Footer ── */
+.footer{margin-top:56px;padding-top:18px;border-top:0.5px solid var(--border);font-size:12px;color:var(--hint);line-height:1.7}
+.footer a{color:var(--hint)}
+.footer a:hover{color:var(--muted)}
+
+.hidden{display:none!important}
+@media(max-width:480px){.wrap{padding:28px 16px 60px}.scenario-toggle{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Topbar -->
+<div class="topbar">
+  <span class="badge-adic">ADIC / 臨床申請解析 証跡デモ</span>
+  <a class="gh-btn" href="https://github.com/GhostDriftTheory/ghostdrift-adic-audit" target="_blank" rel="noopener">GitHub ↗</a>
+</div>
+
+<!-- ①  Pain -->
+<div id="section-pain">
+  <p class="pain-head">このような状況に心当たりはありますか</p>
+  <div class="pain-scenarios">
+    <div class="pain-item">
+      <span class="pain-icon">!</span>
+      <div>
+        <div class="pain-text">NDA/BLA申請後、審査担当者から「同じ解析を再実行して結果を確認させてほしい」と連絡が来た。</div>
+        <div class="pain-sub">— どのバージョンのモデルが動いていたか、記録が残っていない</div>
+      </div>
+    </div>
+    <div class="pain-item">
+      <span class="pain-icon">!</span>
+      <div>
+        <div class="pain-text">試験期間中にAIモデルが更新されていたことが、申請後の内部監査で発覚した。</div>
+        <div class="pain-sub">— 変更管理が記録されておらず、SAPとの乖離の影響範囲を特定できない</div>
+      </div>
+    </div>
+    <div class="pain-item">
+      <span class="pain-icon">!</span>
+      <div>
+        <div class="pain-text">審査担当者から「SAPに記載された解析方法と実装が一致しているか確認させてほしい」と照会が来た。</div>
+        <div class="pain-sub">— 照合できる記録が手元になく、回答に数週間かかる</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="adic-promise">
+    <p>ADICは、<strong>申請解析に使われた条件・実装・変更履歴を固定</strong>し、照会・監査・再現要求に対してそのまま出せる状態を作る実装基盤です。解析の精度ではなく、「その解析がどの条件で・誰の承認のもとで・どう記録されたか」を証跡として確保します。</p>
+  </div>
+
+  <!-- ② Scenario picker -->
+  <p class="section-label">体験するシナリオを選んでください</p>
+  <div class="scenario-toggle">
+    <button class="sc-btn active-ok" onclick="pickScenario('ok',this)">
+      <span class="sc-title">整合確認（変更なし）</span>
+      <span class="sc-desc">SAP一致・モデル版固定済み・再現可能な状態を確認する</span>
+    </button>
+    <button class="sc-btn" onclick="pickScenario('ng',this)">
+      <span class="sc-title">変更検知（差異あり）</span>
+      <span class="sc-desc">試験期間中にモデル版が変更されていた場合を再現する</span>
+    </button>
+  </div>
+
+  <!-- ③ Form -->
+  <div class="form-card">
+    <div class="field">
+      <label for="f-type">解析の種別</label>
+      <input id="f-type" type="text" value="主要評価項目の有効性解析（ロジスティック回帰）">
+    </div>
+    <div class="field">
+      <label for="f-sap">SAP記載の主要内容</label>
+      <textarea id="f-sap">解析対象集団: FAS。評価項目: 12週後の奏効率。欠測値: MICE法による多重補完。前処理: 標準化あり。</textarea>
+    </div>
+    <div class="field">
+      <label for="f-model">使用モデルとバージョン</label>
+      <input id="f-model" value="scikit-learn 1.3.2, LogisticRegression, seed=42, dataset: trial_v2.1">
+      <div class="field-note" id="model-note">SAP提出前にロックされたバージョンを入力してください</div>
+    </div>
+  </div>
+  <button class="run-btn" id="run-btn" onclick="startProcess()">ADIC 証跡セットを生成する →</button>
+</div>
+
+<!-- Processing -->
+<div id="section-proc" class="hidden">
+  <div class="proc-wrap">
+    <p class="proc-title" id="proc-title">ADICが解析条件を固定・照合しています</p>
+    <div id="proc-list"></div>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="section-results" class="hidden">
+  <div class="tabs">
+    <button class="tab on"  onclick="switchTab(0,this)">SAP対応表</button>
+    <button class="tab"     onclick="switchTab(1,this)">実行ログ</button>
+    <button class="tab"     onclick="switchTab(2,this)">環境仕様書</button>
+    <button class="tab"     onclick="switchTab(3,this)">検証結果</button>
+  </div>
+  <div id="t0"></div>
+  <div id="t1" class="hidden"></div>
+  <div id="t2" class="hidden"></div>
+  <div id="t3" class="hidden"></div>
+  <div class="bottom-bar">
+    <button class="reset-btn" onclick="resetAll()">別のシナリオで試す</button>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <p>ADIC（Analytically Derived Interval Computation Integrity Certificates）は GhostDrift Mathematical Institute が開発する証跡基盤です。<br>
+  公開リポジトリ: <a href="https://github.com/GhostDriftTheory/ghostdrift-adic-audit" target="_blank" rel="noopener">ghostdrift-adic-audit</a> ／
+  Lean 形式証明: <a href="https://ghostdrifttheory.github.io/adic-lean-proof/" target="_blank" rel="noopener">adic-lean-proof</a></p>
+  <p style="margin-top:6px">© 2026 GhostDrift Mathematical Institute — 本デモは評価目的のサンプルです。実データは送信されません。</p>
+</div>
+
+</div><!-- /wrap -->
+<script>
+let mode = 'ok';
+
+function pickScenario(m, btn) {
+  mode = m;
+  document.querySelectorAll('.sc-btn').forEach(b => b.className = 'sc-btn');
+  btn.className = 'sc-btn active-' + m;
+  const rb = document.getElementById('run-btn');
+  rb.className = 'run-btn' + (m === 'ng' ? ' ng-mode' : '');
+  rb.textContent = m === 'ng'
+    ? '変更検知シナリオで証跡を生成する →'
+    : 'ADIC 証跡セットを生成する →';
+  document.getElementById('model-note').textContent = m === 'ng'
+    ? '※ このシナリオでは試験期間中にバージョンが変更された状態を再現します'
+    : 'SAP提出前にロックされたバージョンを入力してください';
+}
+
+const STEPS_OK = [
+  'SAP記載パラメータを読み込み中',
+  '入力データのハッシュ値を算出中',
+  'モデル版・乱数シードを固定中',
+  '監査証跡台帳を生成中',
+  '検証器が整合を確認中',
+  '台帳ロック完了 — 整合確認済'
+];
+const STEPS_NG = [
+  'SAP記載パラメータを読み込み中',
+  '入力データのハッシュ値を算出中',
+  'モデル版を照合中',
+  '台帳記録との差分を検出中',
+  '変更管理承認レコードを確認中',
+  '未承認変更を検出 — 解析を自動停止'
+];
+
+async function startProcess() {
+  const at = document.getElementById('f-type').value.trim();
+  const sc = document.getElementById('f-sap').value.trim();
+  const mi = document.getElementById('f-model').value.trim();
+  if (!at || !sc || !mi) return;
+
+  document.getElementById('section-pain').classList.add('hidden');
+  document.getElementById('section-proc').classList.remove('hidden');
+
+  const steps = mode === 'ng' ? STEPS_NG : STEPS_OK;
+  document.getElementById('proc-title').textContent =
+    mode === 'ng' ? 'ADICが条件を照合しています — 変更を検知しています' : 'ADICが解析条件を固定・照合しています';
+
+  const delays = [500,550,600,600,650,900];
+  for (let i = 0; i <= steps.length; i++) {
+    renderProc(steps, i);
+    await sleep(delays[i] || 600);
+  }
+
+  buildResults(at, sc, mi);
+  document.getElementById('section-proc').classList.add('hidden');
+  document.getElementById('section-results').classList.remove('hidden');
+}
+
+function renderProc(steps, idx) {
+  const isNg = mode === 'ng';
+  document.getElementById('proc-list').innerHTML = steps.map((s,i) => {
+    const done = idx > i;
+    const run  = idx === i;
+    const isLast = i === steps.length - 1;
+    let dc = 'proc-dot';
+    if (done && isLast && isNg) dc = 'proc-dot done-ng';
+    else if (done) dc = 'proc-dot done';
+    else if (run && isNg) dc = 'proc-dot running-ng';
+    else if (run) dc = 'proc-dot running';
+    const dt = done ? '✓' : '';
+    let tc = 'proc-text';
+    if ((done || run) && isLast && isNg) tc = 'proc-text stopped';
+    else if (done || run) tc = 'proc-text active';
+    return `<div class="proc-row"><div class="${dc}">${dt}</div><span class="${tc}">${s}</span></div>`;
+  }).join('');
+}
+
+function buildResults(at, sc, mi) {
+  buildSAP(at, sc);
+  buildLog(at, sc, mi);
+  buildEnv(at, mi);
+  buildVerdict(at, mi);
+}
+
+/* ── SAP対応表 ── */
+function buildSAP(at, sc) {
+  const pairs = sc.split('。').filter(s => s.includes(':'));
+  let rows = pairs.map((p,i) => {
+    const col = p.indexOf(':');
+    return { n: String(i+1), k: p.slice(0,col).trim(), v: p.slice(col+1).trim() };
+  });
+  if (!rows.length) rows = [{ n:'1', k:'解析内容', v: at }];
+
+  const isNg = mode === 'ng';
+  document.getElementById('t0').innerHTML = `<div class="rc">
+    <div class="rc-usage">
+      <span class="rc-usage-icon">→</span>
+      <div class="rc-usage-text"><strong>使いどころ：</strong>審査担当者から「SAPと実装が一致しているか確認したい」と求められた際に、そのまま提示できる照合表です。追加照会への回答資料として使います。</div>
+    </div>
+    ${rows.map(r => `<div class="row">
+      <div class="row-flex">
+        <div style="flex:1">
+          <div class="row-k">SAP記載 [${r.n}]: ${r.k}</div>
+          <div class="row-v">実装: ${r.v}</div>
+        </div>
+        <span class="badge ${isNg && r.n==='1' ? 'b-warn' : 'b-ok'}">${isNg && r.n==='1' ? '要確認' : '確認済'}</span>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* ── 実行ログ ── */
+function buildLog(at, sc, mi) {
+  const isNg = mode === 'ng';
+  const h1   = simHash(at + sc);
+  const hLocked = simHash(mi + '_v2.1');
+  const hActual = simHash(mi + '_v2.3_patched');
+  const libs = extractLibs(mi);
+  const ts   = new Date().toISOString().replace('T',' ').slice(0,19) + ' JST';
+
+  const rows = [
+    { k:'ログID',         v:'ADIC-EL-' + simID(at), mono:true },
+    { k:'実行日時',        v:ts, mono:true },
+    { k:'解析種別',        v:at, mono:false },
+    { k:'入力データハッシュ', v:h1, mono:true },
+    { k:'モデルハッシュ（台帳記録）', v:hLocked, mono:true },
+    { k:'モデルハッシュ（実行時）',   v:isNg ? hActual : hLocked, mono:true, mismatch: isNg },
+    { k:'ロック状態', v: isNg ? '不一致を検出' : '台帳ロック済', mono:false, mismatch: isNg },
+  ];
+
+  document.getElementById('t1').innerHTML = `<div class="rc">
+    <div class="rc-usage">
+      <span class="rc-usage-icon">→</span>
+      <div class="rc-usage-text"><strong>使いどころ：</strong>「同じ条件で再実行できることを示してほしい」と求められた際の根拠資料です。FDA査察・PMDA審査・内部監査で提示します。</div>
+    </div>
+    ${rows.map(r => `<div class="row">
+      <div class="row-k">${r.k}</div>
+      <div class="row-v ${r.mono?'mono':''}" style="${r.mismatch?'color:var(--red-text);font-weight:500':''}">
+        ${r.v} ${r.mismatch ? '<span class="badge b-ng" style="margin-left:6px">不一致</span>' : ''}
+      </div>
+    </div>`).join('')}
+    <div class="row">
+      <div class="row-k">使用ライブラリ</div>
+      <div style="margin-top:5px">${libs.map(l=>`<span class="chip">${l}</span>`).join('')}</div>
+    </div>
+    <div class="row" style="border-bottom:none">
+      <div style="background:var(--amber-bg);border-radius:var(--r);padding:9px 12px;margin-top:4px">
+        <span style="font-size:12px;color:var(--amber-text)">停止トリガー: モデルハッシュ不一致・承認未完了・バージョン逸脱を検出した場合に解析を自動停止します</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── 環境仕様書 ── */
+function buildEnv(at, mi) {
+  const isNg = mode === 'ng';
+  const libs  = extractLibs(mi);
+  const cmds  = [
+    'git clone [repo] && git checkout ' + simID(at),
+    'pip install -r requirements_locked.txt --no-deps',
+    'python run_analysis.py --seed 42 --config config.json',
+    'python verify_adic.py --ledger adic_' + simID(at) + '.json',
+  ];
+  const stops = [
+    'モデルハッシュが台帳記録と不一致の場合',
+    '乱数シードが固定値と異なる場合',
+    '依存ライブラリのバージョンが仕様書と不一致の場合',
+  ];
+
+  document.getElementById('t2').innerHTML = `<div class="rc">
+    <div class="rc-usage">
+      <span class="rc-usage-icon">→</span>
+      <div class="rc-usage-text"><strong>使いどころ：</strong>第三者統計レビュー担当者・審査担当者が同一条件で解析を再現するための手順書です。「再実行したが結果が変わった」という状況を防ぎます。</div>
+    </div>
+    <div class="row">
+      <div class="row-k">基本環境</div>
+      <div style="margin-top:5px"><span class="chip">Ubuntu 22.04.3 LTS</span><span class="chip">Python 3.10.12</span></div>
+    </div>
+    <div class="row">
+      <div class="row-k">固定ライブラリ（ハッシュ付）</div>
+      ${libs.map(l => `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px">
+        <span class="chip">${l}</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--hint)">${simHash(l).slice(7,25)}…</span>
+      </div>`).join('')}
+    </div>
+    <div class="row">
+      <div class="row-k">再実行手順</div>
+      <div style="margin-top:6px">${cmds.map(c=>`<div class="code-line">${c}</div>`).join('')}</div>
+    </div>
+    <div class="row" style="border-bottom:none">
+      <div class="row-k">停止条件</div>
+      <div style="margin-top:6px">${stops.map(s=>`<div class="stop-row">${s}</div>`).join('')}</div>
+    </div>
+  </div>`;
+}
+
+/* ── 検証結果 ── */
+function buildVerdict(at, mi) {
+  const isNg = mode === 'ng';
+  const hLocked = simHash(mi + '_v2.1');
+  const hActual = simHash(mi + '_v2.3_patched');
+
+  if (!isNg) {
+    document.getElementById('t3').innerHTML = `
+      <div class="verdict ok">
+        <div class="verdict-label">整合確認済</div>
+        <p class="verdict-msg">証明書・台帳・環境仕様書の3点が整合しています。<br>審査担当者への再実行要求・照会対応に、この証跡セットをそのまま提示できます。</p>
+      </div>
+      <div class="rc checklist" style="margin-top:12px">
+        <div class="row-k" style="margin-bottom:8px">検証器が確認した照合項目</div>
+        ${[
+          ['SAP全項目の一致確認','確認済'],
+          ['モデルハッシュ照合','一致'],
+          ['入力データハッシュ照合','一致'],
+          ['乱数シード固定（seed=42）','固定済'],
+          ['変更管理承認記録','承認済'],
+          ['監査証跡台帳ロック','完了'],
+        ].map(([k,v])=>`<div class="check-row">
+          <span class="check-label">${k}</span>
+          <span class="badge b-ok">${v}</span>
+        </div>`).join('')}
+        <p class="disclaimer">※ ADICは規制判断そのものを代替しません。申請解析に使われた条件・実装・変更履歴を照合しやすい形で固定する実装基盤です。</p>
+      </div>`;
+  } else {
+    document.getElementById('t3').innerHTML = `
+      <div class="verdict ng">
+        <div class="verdict-label">差異検出 — 自動停止</div>
+        <p class="verdict-msg">モデルバージョンの不一致を検出しました。<br>解析を自動停止しました。</p>
+      </div>
+      <div class="ng-reason">
+        <div class="ng-reason-head">検出された問題</div>
+        <div class="ng-reason-item">
+          <span class="key">台帳に記録されたモデルハッシュ（SAP提出前にロック済）</span>
+          <span style="font-family:var(--mono);font-size:11px">${hLocked.slice(0,40)}…</span>
+        </div>
+        <div class="ng-reason-item">
+          <span class="key">実行時のモデルハッシュ（検出された実際の値）</span>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--red-text)">${hActual.slice(0,40)}… <span class="badge b-ng">不一致</span></span>
+        </div>
+        <div class="ng-reason-item">
+          <span class="key">変更管理承認記録</span>
+          <span style="color:var(--red-text);font-weight:500">未承認変更を検出 — 変更管理委員会の承認記録が存在しません</span>
+        </div>
+        <div class="ng-reason-item">
+          <span class="key">影響範囲</span>
+          このモデル版が使われた解析件数を監査証跡台帳で確認が必要です
+        </div>
+      </div>
+      <div class="ng-benefit">
+        <p><strong>SAP逸脱のまま申請資料に混入することを防ぎます。</strong>問題が発覚するタイミングが「申請後の審査照会・査察」ではなく「解析実行時」になります。変更管理の記録漏れを、承認前の段階で検知できます。</p>
+      </div>
+      <p class="disclaimer" style="margin-top:12px;font-size:11px;color:var(--hint)">※ ADICは規制判断そのものを代替しません。申請解析に使われた条件・実装・変更履歴を照合しやすい形で固定する実装基盤です。</p>`;
+  }
+}
+
+function switchTab(idx, btn) {
+  [0,1,2,3].forEach(i => document.getElementById('t'+i).classList.toggle('hidden', i!==idx));
+  document.querySelectorAll('.tab').forEach((b,i) => b.className = 'tab'+(i===idx?' on':''));
+}
+
+function resetAll() {
+  document.getElementById('section-results').classList.add('hidden');
+  document.getElementById('section-pain').classList.remove('hidden');
+  switchTab(0, document.querySelector('.tab'));
+}
+
+/* helpers */
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function simHash(s){
+  let h=5381;
+  for(let i=0;i<s.length;i++) h=((h<<5)+h)^s.charCodeAt(i);
+  const x=(h>>>0).toString(16).padStart(8,'0');
+  return 'sha256:'+(x.repeat(8)).slice(0,64);
+}
+function simID(s){
+  let h=0;
+  for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))&0xffff;
+  return h.toString(16).toUpperCase().padStart(4,'0');
+}
+function extractLibs(s){
+  const known=['scikit-learn','pandas','numpy','lightgbm','torch','tensorflow','scipy','statsmodels'];
+  const found=known.filter(l=>s.toLowerCase().includes(l.replace('-','')||l));
+  if(!found.length) found.push('scikit-learn');
+  return found.map(l=>{
+    const m=s.match(new RegExp(l+'\\s*[==@]?\\s*([\\d.]+)','i'));
+    return m?`${l}==${m[1]}`:`${l}==1.3.2`;
+  });
+}
+</script>
+</body>
+</html>
